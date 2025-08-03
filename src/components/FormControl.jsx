@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { submitForm } from "../store/formSlice";
 import { toast } from "react-toastify";
+import { handleSendOtp, handleVerifyOtp } from "../utils/otpUtils";
 
 const FormControl = ({ courseTitle = "" }) => {
   const dispatch = useDispatch();
@@ -17,12 +18,39 @@ const FormControl = ({ courseTitle = "" }) => {
     courseTitle: courseTitle,
   });
 
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+  };
+
+  const onSendOtp = async () => {
+    if (!formData.phone) {
+      toast.error("Please enter your phone number.");
+      return;
+    }
+    setOtpLoading(true);
+    const sent = await handleSendOtp(dispatch, formData.phone);
+    setOtpLoading(false);
+    setOtpSent(sent);
+  };
+
+  const onVerifyOtp = async () => {
+    if (!otpCode) {
+      toast.error("Please enter the OTP.");
+      return;
+    }
+    setOtpLoading(true);
+    const verified = await handleVerifyOtp(dispatch, formData.phone, otpCode);
+    setOtpLoading(false);
+    setOtpVerified(verified);
   };
 
   const handleSubmit = async (e) => {
@@ -35,6 +63,11 @@ const FormControl = ({ courseTitle = "" }) => {
       !formData.policy
     ) {
       toast.error("Please fill all required fields and agree to the policy.");
+      return;
+    }
+
+    if (!otpVerified) {
+      toast.error("Please verify your phone number before submitting.");
       return;
     }
 
@@ -51,6 +84,9 @@ const FormControl = ({ courseTitle = "" }) => {
           policy: false,
           courseTitle: courseTitle,
         });
+        setOtpCode("");
+        setOtpSent(false);
+        setOtpVerified(false);
       } else {
         toast.error(resultAction.payload || "Submission failed");
       }
@@ -80,14 +116,49 @@ const FormControl = ({ courseTitle = "" }) => {
           value={formData.email}
           onChange={handleChange}
         />
-        <input
-          type="tel"
-          name="phone"
-          placeholder="Phone"
-          className="w-full px-3 py-1.5 rounded text-black text-sm focus:outline-none"
-          value={formData.phone}
-          onChange={handleChange}
-        />
+        <div className="flex gap-2">
+          <input
+            type="tel"
+            name="phone"
+            placeholder="Phone number with country code"
+            pattern="^\+?[0-9]{10,15}$"
+            title="Enter a valid phone number with country code"
+            className="w-full px-4 py-2 border rounded-md focus:outline-none"
+            required
+            value={formData.phone}
+            onChange={handleChange}
+          />
+          <button
+            type="button"
+            onClick={onSendOtp}
+            className="bg-white text-primary px-4 py-2 text-xs rounded-md"
+            disabled={otpLoading}
+          >
+            {otpLoading ? "Sending..." : otpSent ? "Resend OTP" : "Send OTP"}
+          </button>
+        </div>
+
+        {otpSent && (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              name="otp"
+              placeholder="Enter OTP"
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value)}
+              className="w-full px-4 py-2 border rounded-md focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={onVerifyOtp}
+              className="bg-green-600 text-white px-4 py-2 rounded-md"
+              disabled={otpVerified || otpLoading}
+            >
+              {otpVerified ? "Verified ✅" : "Verify OTP"}
+            </button>
+          </div>
+        )}
+
         <input
           type="text"
           name="subject"

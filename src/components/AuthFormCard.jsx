@@ -1,9 +1,10 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { setAuthStatusIdle } from "../store/authSlice";
-
+import { FiEye, FiEyeOff } from "react-icons/fi";
+import { handleSendOtp, handleVerifyOtp } from "../utils/otpUtils";
 const AuthFormCard = ({
   activeTab,
   setActiveTab,
@@ -17,7 +18,22 @@ const AuthFormCard = ({
   const status = useSelector((state) => state.auth.status);
   const error = useSelector((state) => state.auth.error);
   const currentAction = useSelector((state) => state.auth.currentAction);
+  const [otpSent, setOtpSent] = useState(false);
+const [otpVerified, setOtpVerified] = useState(false);
+ const [otpLoading, setOtpLoading] = useState(false);
+const [otpCode, setOtpCode] = useState("");
+const [phone, setPhone] = useState("");
+  const [passwordVisibility, setPasswordVisibility] = useState({
+    password: false,
+    confirmPassword: false,
+  });
 
+  const togglePasswordVisibility = (field) => {
+    setPasswordVisibility((prev) => ({
+      ...prev,
+      [field]: !prev[field],
+    }));
+  };
   useEffect(() => {
     if (isLoggedIn && user) {
       if (user.role === "admin") {
@@ -74,8 +90,17 @@ const AuthFormCard = ({
         </p>
       </div>
       {activeTab === "signup" ? (
-        <form className="space-y-4 animate-fade-in" onSubmit={handleSignup}>
-          <input
+<form
+  className="space-y-4 animate-fade-in"
+  onSubmit={(e) => {
+    e.preventDefault();
+    if (!otpVerified) {
+      toast.error("Please verify your phone number before signing up.");
+      return;
+    }
+    handleSignup(e); // Your actual signup logic
+  }}
+>          <input
             type="text"
             name="name"
             placeholder="Full Name"
@@ -91,22 +116,96 @@ const AuthFormCard = ({
             required
             onChange={handleInputChange}
           />
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            className="w-full px-4 py-2 border rounded-md focus:outline-none"
-            required
-            onChange={handleInputChange}
-          />
-          <input
-            type="password"
-            name="confirmPassword"
-            placeholder="Confirm Password"
-            className="w-full px-4 py-2 border rounded-md focus:outline-none"
-            required
-            onChange={handleInputChange}
-          />
+  <div className="flex gap-2">
+<input
+  type="tel"
+  name="phone"
+  value={phone}
+  placeholder="Phone number with country code"
+  pattern="^\+?[0-9]{10,15}$"
+  title="Enter a valid phone number with country code"
+  className="w-full px-4 py-2 border rounded-md focus:outline-none"
+  required
+  onChange={(e) => {
+    handleInputChange();
+    setPhone(e.target.value);
+  }}
+/>
+
+ <button
+  type="button" 
+  onClick={async () => {
+    setOtpLoading(true);
+    const success = await handleSendOtp(dispatch, phone);
+    setOtpLoading(false);
+    setOtpSent(success);
+  }}
+  className="bg-primary text-white px-4 py-2 text-xs rounded-md"
+  disabled={otpLoading}
+>
+  {otpLoading ? "Sending..." : otpSent ? "Resend OTP" : "Send OTP"}
+</button>
+
+
+  </div>
+  {otpSent && (
+    <div className="flex gap-2">
+      <input
+        type="text"
+        name="otp"
+        placeholder="Enter OTP"
+        value={otpCode}
+        onChange={(e) => setOtpCode(e.target.value)}
+        className="w-full px-4 py-2 border rounded-md focus:outline-none"
+      />
+   <button
+  type="button" 
+  onClick={async () => {
+    setOtpLoading(true);
+    const verified = await handleVerifyOtp(dispatch, phone, otpCode);
+    setOtpLoading(false);
+    setOtpVerified(verified);
+  }}
+  className="bg-green-600 text-white px-4 py-2 rounded-md"
+  disabled={otpVerified || otpLoading}
+>
+  {otpVerified ? "Verified ✅" : "Verify OTP"}
+</button>
+
+    </div>
+  )}
+          <div className="relative">
+            <input
+              type={passwordVisibility.password ? "text" : "password"}
+              name="password"
+              placeholder="Password"
+              className="w-full px-4 py-2 border rounded-md focus:outline-none pr-10"
+              required
+              onChange={handleInputChange}
+            />
+            <span
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer"
+              onClick={() => togglePasswordVisibility("password")}
+            >
+              {passwordVisibility.password ? <FiEyeOff /> : <FiEye />}
+            </span>
+          </div>
+          <div className="relative">
+            <input
+              type={passwordVisibility.confirmPassword ? "text" : "password"}
+              name="confirmPassword"
+              placeholder="Confirm Password"
+              className="w-full px-4 py-2 border rounded-md focus:outline-none pr-10"
+              required
+              onChange={handleInputChange}
+            />
+            <span
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer"
+              onClick={() => togglePasswordVisibility("confirmPassword")}
+            >
+              {passwordVisibility.confirmPassword ? <FiEyeOff /> : <FiEye />}
+            </span>
+          </div>
           <button
             type="submit"
             className="w-full bg-primary text-white py-2 rounded-md font-semibold hover:bg-[#0d2f6c] transition"
@@ -127,14 +226,22 @@ const AuthFormCard = ({
             required
             onChange={handleInputChange}
           />
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            className="w-full px-4 py-2 border rounded-md focus:outline-none"
-            required
-            onChange={handleInputChange}
-          />
+          <div className="relative">
+            <input
+              type={passwordVisibility.password ? "text" : "password"}
+              name="password"
+              placeholder="Password"
+              className="w-full px-4 py-2 border rounded-md focus:outline-none pr-10"
+              required
+              onChange={handleInputChange}
+            />
+            <span
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer"
+              onClick={() => togglePasswordVisibility("password")}
+            >
+              {passwordVisibility.password ? <FiEyeOff /> : <FiEye />}
+            </span>
+          </div>
           <button
             type="submit"
             className="w-full bg-primary text-white py-2 rounded-md font-semibold hover:bg-[#0d2f6c] transition"

@@ -29,7 +29,7 @@ const QuizResult = ({ quizName, attempts = [], totalQuestions = 0 }) => {
             cy="60"
             r={radius}
             fill="none"
-            stroke="#38bdf8"
+            stroke="#4ade80"
             strokeWidth="16"
             strokeDasharray={`${correctStroke} ${incorrectStroke}`}
             strokeDashoffset="0"
@@ -37,7 +37,7 @@ const QuizResult = ({ quizName, attempts = [], totalQuestions = 0 }) => {
           />
           <text
             x="60"
-            y="65"
+            y="60"
             textAnchor="middle"
             fontSize="22"
             fontWeight="bold"
@@ -48,7 +48,7 @@ const QuizResult = ({ quizName, attempts = [], totalQuestions = 0 }) => {
           </text>
           <text
             x="60"
-            y="85"
+            y="75"
             textAnchor="middle"
             fontSize="14"
             fill="#666"
@@ -59,7 +59,7 @@ const QuizResult = ({ quizName, attempts = [], totalQuestions = 0 }) => {
         </svg>
         <div className="flex gap-4 mt-2 text-xs">
           <span className="flex items-center">
-            <span className="inline-block w-3 h-3 bg-sky-400 rounded-full mr-1"></span>
+            <span className="inline-block w-3 h-3 bg-green-400 rounded-full mr-1"></span>
             Correct: {correct}
           </span>
           <span className="flex items-center">
